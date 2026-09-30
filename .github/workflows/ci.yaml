@@ -1,0 +1,55 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0  # ct compares against the target branch
+
+      - uses: azure/setup-helm@v5
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - uses: helm/chart-testing-action@v2.8.0
+
+      - name: helm lint
+        run: helm lint --strict charts/samba-operator
+
+      - name: ct lint
+        # On main there is nothing to compare against; check every chart instead.
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            ct lint --config ct.yaml
+          else
+            ct lint --config ct.yaml --all --check-version-increment=false
+          fi
+
+      - uses: helm/kind-action@v1.15.0
+
+      - name: ct install
+        run: ct install --config ct.yaml --all
+
+      - name: e2e — SMB write through an operator-managed share
+        run: |
+          helm install samba-operator charts/samba-operator \
+            --namespace samba-operator-system --create-namespace --wait --timeout 5m
+          hack/e2e-smb.sh
+
+      - name: debug on failure
+        if: failure()
+        run: |
+          kubectl get pods -A -o wide
+          kubectl -n samba-operator-system logs deploy/samba-operator-controller-manager -c manager --tail=100 || true
+          kubectl -n smb-demo describe pods || true

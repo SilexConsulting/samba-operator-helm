@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "samba-operator.fullname" . }}-controller-cfg
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "samba-operator.labels" . | nindent 4 }}
+{{- with .Values.config }}
+data:
+  {{- range $key, $value := . }}
+  SAMBA_OP_{{ $key | upper | replace "-" "_" }}: {{ $value | toString | quote }}
+  {{- end }}
+{{- end }}

@@ -1,0 +1,8 @@
+samba-operator-helm
+Copyright 2026 Silex Consulting
+
+This chart packages the samba-operator by the samba-in-kubernetes project
+(https://github.com/samba-in-kubernetes/samba-operator), licensed under the
+Apache License, Version 2.0. The CustomResourceDefinitions in
+charts/samba-operator/crds/ and the RBAC rules in templates/rbac.yaml are
+generated from / copied from that project's config/ directory.

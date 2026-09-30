@@ -1,0 +1,16 @@
+{{- if .Values.metrics.authProxy.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "samba-operator.fullname" . }}-controller-manager-metrics-service
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "samba-operator.labels" . | nindent 4 }}
+spec:
+  ports:
+    - name: https
+      port: {{ .Values.metrics.service.port }}
+      targetPort: https
+  selector:
+    {{- include "samba-operator.selectorLabels" . | nindent 4 }}
+{{- end }}

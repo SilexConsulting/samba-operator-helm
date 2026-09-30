@@ -1,0 +1,42 @@
+apiVersion: v2
+name: samba-operator
+description: >-
+  Helm chart for the samba-in-kubernetes samba-operator — manage SMB shares (SmbShare,
+  SmbCommonConfig, SmbSecurityConfig) on Kubernetes.
+type: application
+# Chart version — bump on every chart change (SemVer).
+version: 0.1.0
+# The upstream operator release this chart is rendered from (also the default image tag).
+appVersion: "v0.8"
+kubeVersion: ">=1.25.0-0"
+home: https://github.com/SilexConsulting/samba-operator-helm
+sources:
+  - https://github.com/SilexConsulting/samba-operator-helm
+  - https://github.com/samba-in-kubernetes/samba-operator
+keywords:
+  - samba
+  - smb
+  - cifs
+  - file-share
+  - operator
+maintainers:
+  - name: Silex Consulting
+    url: https://github.com/SilexConsulting
+annotations:
+  artifacthub.io/license: Apache-2.0
+  artifacthub.io/operator: "true"
+  artifacthub.io/crds: |
+    - kind: SmbShare
+      version: v1alpha1
+      description: An SMB share backed by a PVC.
+    - kind: SmbCommonConfig
+      version: v1alpha1
+      description: Common server settings (e.g. network publishing) shared by SmbShares.
+    - kind: SmbSecurityConfig
+      version: v1alpha1
+      description: Users/groups or Active Directory settings for SmbShares.
+  artifacthub.io/images: |
+    - name: samba-operator
+      image: quay.io/samba.org/samba-operator:v0.8
+    - name: kube-rbac-proxy
+      image: quay.io/brancz/kube-rbac-proxy:v0.18.1

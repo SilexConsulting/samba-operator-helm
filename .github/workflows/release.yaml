@@ -1,0 +1,44 @@
+name: release
+
+# Tag vX.Y.Z (matching charts/samba-operator/Chart.yaml `version`) to publish
+# oci://ghcr.io/silexconsulting/charts/samba-operator:X.Y.Z
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write   # GitHub release
+  packages: write   # ghcr.io push
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: azure/setup-helm@v5
+
+      - name: Check tag matches the chart version
+        id: version
+        run: |
+          chart_version=$(yq '.version' charts/samba-operator/Chart.yaml)
+          if [ "v${chart_version}" != "${GITHUB_REF_NAME}" ]; then
+            echo "Tag ${GITHUB_REF_NAME} does not match Chart.yaml version ${chart_version}" >&2
+            exit 1
+          fi
+          echo "version=${chart_version}" >> "$GITHUB_OUTPUT"
+
+      - name: Package
+        run: helm package charts/samba-operator --destination dist
+
+      - name: Push to ghcr.io
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u "${{ github.actor }}" --password-stdin
+          helm push dist/samba-operator-${{ steps.version.outputs.version }}.tgz oci://ghcr.io/silexconsulting/charts
+
+      - name: GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" dist/*.tgz --generate-notes \
+            --title "samba-operator chart ${{ steps.version.outputs.version }}"

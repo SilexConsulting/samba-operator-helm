@@ -1,0 +1,46 @@
+# Minimal share: no SmbSecurityConfig, so the operator uses its BUILT-IN default user
+# (sambauser / samba — upstream's published default). Fine for a LAN drop-box such as a
+# scanner's "scan to SMB"; use user-share.yaml for anything else.
+#
+#   kubectl create namespace smb-demo
+#   kubectl apply -f examples/default-user-share.yaml
+#   # from a LAN client:  smbclient //<EXTERNAL-IP>/smb-demo-share -U sambauser%samba
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: smb-demo-data
+  namespace: smb-demo
+spec:
+  # ReadWriteMany if other pods (on other nodes) also mount this volume — e.g. an app that
+  # consumes what is dropped on the share. The smbd pod itself only needs RWO.
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 1Gi
+---
+# Optional: publish the share outside the cluster. Without an SmbCommonConfig the Service is
+# ClusterIP (in-cluster clients only).
+apiVersion: samba-operator.samba.org/v1alpha1
+kind: SmbCommonConfig
+metadata:
+  name: smb-demo-common
+  namespace: smb-demo
+spec:
+  network:
+    # "external" => Service type LoadBalancer. The operator exposes no Service annotations or
+    # loadBalancerIP; see the README ("Pinning the LoadBalancer IP") for how to get a fixed IP.
+    publish: external
+---
+apiVersion: samba-operator.samba.org/v1alpha1
+kind: SmbShare
+metadata:
+  name: smb-demo-share
+  namespace: smb-demo
+spec:
+  commonConfig: smb-demo-common
+  readOnly: false
+  browseable: true
+  storage:
+    pvc:
+      name: smb-demo-data

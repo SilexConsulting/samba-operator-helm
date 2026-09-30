@@ -1,0 +1,30 @@
+# Fixed LoadBalancer IP for a share (MetalLB shown; adapt the annotation for your LB).
+#
+# The operator creates each share's Service itself and exposes no way to set annotations or
+# loadBalancerIP on it. It also never updates a Service that already exists. So:
+#
+#   * Recommended (declarative): leave the share internal (no SmbCommonConfig with
+#     `publish: external`) and add your OWN LoadBalancer Service that selects the share's smbd
+#     pods by the operator's label `samba-operator.samba.org/service: <SmbShare name>`.
+#     This file does that for examples/user-share.yaml.
+#   * Alternative (imperative): publish externally and annotate the operator's Service once:
+#       kubectl -n smb-demo annotate svc smb-users-share metallb.universe.tf/loadBalancerIPs=192.0.2.10
+#     The operator keeps the annotation, but it is lost if the SmbShare (and so the Service)
+#     is ever recreated.
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: smb-users-share-lb
+  namespace: smb-demo
+  annotations:
+    metallb.universe.tf/loadBalancerIPs: 192.0.2.10
+spec:
+  type: LoadBalancer
+  selector:
+    samba-operator.samba.org/service: smb-users-share
+  ports:
+    - name: smb
+      port: 445
+      targetPort: 445
+      protocol: TCP

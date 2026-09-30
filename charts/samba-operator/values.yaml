@@ -1,0 +1,95 @@
+# Default values for samba-operator.
+#
+# Object names are "<fullname>-<upstream name>", and <fullname> defaults to "samba-operator"
+# (when the release is named samba-operator, or contains it), which reproduces upstream's
+# `make deploy` names exactly. Installing into namespace `samba-operator-system` with release
+# name `samba-operator` therefore ADOPTS an existing kustomize install in place.
+
+# -- Override the name part of <fullname>.
+nameOverride: ""
+# -- Override <fullname> entirely.
+fullnameOverride: ""
+
+image:
+  repository: quay.io/samba.org/samba-operator
+  # -- Defaults to the chart appVersion. Upstream publishes amd64-only images.
+  tag: ""
+  # -- Optional digest (sha256:...); takes precedence over the tag.
+  digest: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+# -- The operator uses leader election, so >1 replica is safe (only one reconciles).
+replicaCount: 1
+
+serviceAccount:
+  # -- Create a dedicated ServiceAccount. If false, `name` (default: the namespace's `default`
+  # SA, as upstream's kustomize does) is bound instead.
+  create: true
+  name: ""
+  annotations: {}
+
+# -- Operator configuration, written to the <fullname>-controller-cfg ConfigMap and read by the
+# operator as SAMBA_OP_<KEY> env vars (keys are upper-cased, "-" becomes "_").
+# The operator's built-in defaults (v0.8) are shown commented out.
+config: {}
+  # smbd-container-image: quay.io/samba.org/samba-server:v0.8
+  # smbd-metrics-container-image: quay.io/samba.org/samba-metrics:v0.8
+  # svc-watch-container-image: quay.io/samba.org/svcwatch:v0.3
+  # samba-debug-level: ""
+  # state-pvc-size: 1Gi
+  # cluster-support: ""          # "ctdb-is-experimental" enables availabilityMode: clustered
+  # metrics-exporter-mode: disabled  # "enabled" adds a samba-metrics sidecar + Service per share
+  # image-pull-policy: IfNotPresent
+  # default-node-selector: ""      # JSON node selector for share (smbd) pods; "" = built-in
+  #                                # {"kubernetes.io/arch": "amd64"}, '{}' = none
+  # cluster-type: ""             # "openshift" to use SCCs
+
+# -- Extra args for the manager container.
+extraArgs: []
+# -- Extra env vars for the manager container.
+extraEnv: []
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 100Mi
+  requests:
+    cpu: 100m
+    memory: 20Mi
+
+# The /metrics endpoint is served on 127.0.0.1:8080 and exposed on :8443 through a
+# kube-rbac-proxy sidecar (authn/authz via TokenReview/SubjectAccessReview), as upstream does.
+metrics:
+  authProxy:
+    enabled: true
+    image:
+      repository: quay.io/brancz/kube-rbac-proxy
+      tag: v0.18.1
+      digest: ""
+      pullPolicy: IfNotPresent
+    # -- kube-rbac-proxy log verbosity (upstream uses 10).
+    verbosity: 10
+    resources: {}
+  service:
+    port: 8443
+
+podAnnotations: {}
+podLabels: {}
+podSecurityContext: {}
+securityContext: {}
+priorityClassName: ""
+nodeSelector: {}
+tolerations: []
+
+# -- Upstream images are published for amd64 only, so (like upstream) the operator is pinned to
+# nodes of these architectures via node affinity. Set to [] to drop the constraint (e.g. when
+# using your own multi-arch images). Ignored if `affinity` is set.
+nodeArchitectures:
+  - amd64
+
+# -- Pod affinity; replaces the `nodeArchitectures` affinity when set.
+affinity: {}
+
+terminationGracePeriodSeconds: 10

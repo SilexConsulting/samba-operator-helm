@@ -1,0 +1,14 @@
+samba-operator {{ .Chart.AppVersion }} is installed in namespace {{ .Release.Namespace }}.
+
+Check the controller:
+  kubectl -n {{ .Release.Namespace }} get deploy {{ include "samba-operator.fullname" . }}-controller-manager
+
+Create a share: an SmbShare (plus optionally an SmbCommonConfig / SmbSecurityConfig) in any
+namespace, backed by a PVC. Examples:
+  https://github.com/SilexConsulting/samba-operator-helm/tree/main/examples
+
+Notes:
+  * Helm installs CRDs from crds/ only on first install and never upgrades them; re-apply
+    them on chart upgrades (Argo CD applies them on every sync).
+  * A share's smbd pod mounts its PVC; use a ReadWriteMany PVC if other pods on other nodes
+    also mount it.

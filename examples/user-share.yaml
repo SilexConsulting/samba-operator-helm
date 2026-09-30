@@ -1,0 +1,52 @@
+# Share with its own users (SmbSecurityConfig, mode: user). The users live in a Secret as
+# samba-container JSON. NEVER commit real passwords: create the Secret out-of-band, or via
+# SOPS / External Secrets, and keep only the SmbSecurityConfig + SmbShare in Git.
+#
+#   kubectl create namespace smb-demo
+#   kubectl apply -f examples/user-share.yaml
+#   smbclient //<EXTERNAL-IP>/smb-users-share -U alice%change-me
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: smb-demo-users
+  namespace: smb-demo
+type: Opaque
+stringData:
+  users.json: |
+    {
+      "samba-container-config": "v0",
+      "users": {
+        "all_entries": [
+          {"name": "alice", "password": "change-me"}
+        ]
+      }
+    }
+---
+apiVersion: samba-operator.samba.org/v1alpha1
+kind: SmbSecurityConfig
+metadata:
+  name: smb-demo-users
+  namespace: smb-demo
+spec:
+  mode: user
+  users:
+    secret: smb-demo-users
+    key: users.json
+---
+apiVersion: samba-operator.samba.org/v1alpha1
+kind: SmbShare
+metadata:
+  name: smb-users-share
+  namespace: smb-demo
+spec:
+  securityConfig: smb-demo-users
+  readOnly: false
+  storage:
+    pvc:
+      # No `name`: the operator creates (and owns) a PVC from this spec.
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests:
+            storage: 1Gi

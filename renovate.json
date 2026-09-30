@@ -1,0 +1,22 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Images pinned in values.yaml (repository + tag on adjacent lines)",
+      "managerFilePatterns": ["/charts/.+/values\\.yaml$/"],
+      "matchStrings": [
+        "repository: (?<depName>quay\\.io/brancz/kube-rbac-proxy)\\s+tag: (?<currentValue>\\S+)"
+      ],
+      "datasourceTemplate": "docker"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "The operator image follows appVersion — bump via hack/sync-upstream.sh, not Renovate",
+      "matchPackageNames": ["quay.io/samba.org/samba-operator"],
+      "enabled": false
+    }
+  ]
+}
