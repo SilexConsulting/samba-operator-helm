@@ -5,5 +5,3 @@ target-branch: main
 validate-maintainers: false
 check-version-increment: true
 helm-extra-args: --timeout 600s
-namespace: samba-operator-system
-release-label: app.kubernetes.io/instance
